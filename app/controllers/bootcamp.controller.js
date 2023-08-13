@@ -1,87 +1,70 @@
-const {
-  users,
-  bootcamps
-} = require('../models')
-const db = require('../models')
-const Bootcamp = db.bootcamps
-const User = db.users
+const
+  db = require('../models'),
+  Bootcamp = db.bootcamps,
+  User = db.users
 
 // Crear y guardar un nuevo bootcamp
-exports.createBootcamp = (bootcamp) => {
-  return Bootcamp.create({
-      title: bootcamp.title,
-      cue: bootcamp.cue,
-      description: bootcamp.description,
-    })
-    .then(bootcamp => {
-      console.log(`>> Creado el bootcamp: ${JSON.stringify(bootcamp, null, 4)}`)
-      return bootcamp
-    })
-    .catch(err => {
-      console.log(`>> Error al crear el bootcamp: ${err}`)
-    })
+exports.createBootcamp = async ({ body }, response) => {
+  const { title, cue, description } = body
+  try {
+    const bootcamp = await Bootcamp.create({ title, cue, description })
+    return response.json(bootcamp)
+  } catch (error) {
+    console.log(`>> Error al crear el bootcamp: ${error}`)
+    return response.status(400).json({ error: error?.message ?? error })
+  }
 }
 
 // Agregar un Usuario al Bootcamp
-exports.addUser = (bootcampId, userId) => {
-  return Bootcamp.findByPk(bootcampId)
-    .then((bootcamp) => {
-      if (!bootcamp) {
-        console.log("No se encontro el Bootcamp!");
-        return null;
-      }
-      return User.findByPk(userId).then((user) => {
-        if (!user) {
-          console.log("Usuario no encontrado!");
-          return null;
-        }
-        bootcamp.addUser(user);
-        console.log('***************************')
-        console.log(` Agregado el usuario id=${user.id} al bootcamp con id=${bootcamp.id}`);
-        console.log('***************************')
-        return bootcamp;
-      });
-    })
-    .catch((err) => {
-      console.log(">> Error mientras se estaba agregando Usuario al Bootcamp", err);
-    });
+exports.addUser = async ({ body }, response) => {
+  const
+    error = [],
+    { bootcampId, userId } = body
+  try {
+    const
+      bootcamp = await Bootcamp.findByPk(bootcampId),
+      user = await User.findByPk(userId)
+
+    !bootcamp && error.push(`Bootcamp(${bootcampId}) no encontrado`);
+    !user && error.push(`User(${bootcampId}) no encontrado`);
+
+    if (error.length) return response
+      .status(404)
+      .json({ error: `Bootcamp(${bootcampId}) no encontrado` });
+    await bootcamp.addUser(user)
+    return response.json(bootcamp)
+  } catch (error) {
+    console.log(">> Error mientras se estaba agregando Usuario al Bootcamp", error)
+    return response.status(400).json({ error: error?.message ?? error })
+  }
+
+
 };
 
-
 // obtener los bootcamp por id 
-exports.findById = (Id) => {
-  return Bootcamp.findByPk(Id, {
-      include: [{
-        model: User,
-        as: "users",
-        attributes: ["id", "firstName", "lastName"],
-        through: {
-          attributes: [],
-        }
-      }, ],
-    })
-    .then(bootcamp => {
-      return bootcamp
-    })
-    .catch(err => {
-      console.log(`>> Error mientras se encontraba el bootcamp: ${err}`)
-    })
+exports.findById = async ({ params }, response) => {
+  const id = params.id
+  try {
+    const bootcamp = await Bootcamp.scope('includeUsers').findByPk(id)
+
+    if (!bootcamp) return response
+      .status(404)
+      .json({ error: `Bootcamp(${id}) no encontrado` });
+
+    return response.json(bootcamp)
+  } catch (error) {
+    console.log(`>> Error mientras se encontraba el bootcamp: ${err}`)
+    return response.status(400).json({ error: error?.message ?? error })
+  }
 }
 
 // obtener todos los Usuarios incluyendo los Bootcamp
-exports.findAll = () => {
-  return Bootcamp.findAll({
-    include: [{
-      model: User,
-      as: "users",
-      attributes: ["id", "firstName", "lastName"],
-      through: {
-        attributes: [],
-      }
-    }, ],
-  }).then(bootcamps => {
-    return bootcamps
-  }).catch((err) => {
-    console.log(">> Error Buscando los Bootcamps: ", err);
-  });
+exports.findAll = async (_, response) => {
+  try {
+    const bootcamps = await Bootcamp.scope('includeUsers').findAll()
+    return response.json(bootcamps)
+  } catch (error) {
+    console.log(">> Error Buscando los Bootcamps: ", error);
+    return response.status(400).json({ error: error?.message ?? error })
+  }
 }

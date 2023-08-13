@@ -34,9 +34,14 @@ module.exports = (sequelize, DataTypes) => {
         args: true,
         msg: 'correo electronico actualmente registrado en la base de datos!'
       }
-
-    }
-
+    },
+    // password: {
+    //   type: DataTypes.STRING,
+    //   validate: {
+    //     notNull: true,
+    //     notEmpty: true,
+    //   }
+    // }
   })
 
   return User

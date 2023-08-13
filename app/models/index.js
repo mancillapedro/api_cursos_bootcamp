@@ -22,7 +22,6 @@ db.sequelize = sequelize
 db.users = require('./user.model')(sequelize, Sequelize)
 db.bootcamps = require('./bootcamp.model')(sequelize, Sequelize)
 
-
 db.users.belongsToMany(db.bootcamps, {
   through: "user_bootcamp",
   as: "bootcamps",
@@ -33,5 +32,14 @@ db.bootcamps.belongsToMany(db.users, {
   as: "users",
   foreignKey: "bootcamp_id",
 });
+
+db.bootcamps.addScope('includeUsers', {
+  include: {
+    model: db.users,
+    as: "users",
+    attributes: ["id", "firstName", "lastName"],
+    through: { attributes: [] }
+  }
+})
 
 module.exports = db
