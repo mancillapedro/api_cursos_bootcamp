@@ -42,4 +42,13 @@ db.bootcamps.addScope('includeUsers', {
   }
 })
 
+db.users.addScope('includeBootcamps', {
+  include: {
+    model: db.bootcamps,
+    as: "bootcamps",
+    attributes: ["id", "title"],
+    through: { attributes: [] }
+  }
+})
+
 module.exports = db

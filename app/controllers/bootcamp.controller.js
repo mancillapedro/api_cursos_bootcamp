@@ -26,11 +26,12 @@ exports.addUser = async ({ body }, response) => {
       user = await User.findByPk(userId)
 
     !bootcamp && error.push(`Bootcamp(${bootcampId}) no encontrado`);
-    !user && error.push(`User(${bootcampId}) no encontrado`);
+    !user && error.push(`User(${userId}) no encontrado`);
 
     if (error.length) return response
       .status(404)
       .json({ error: `Bootcamp(${bootcampId}) no encontrado` });
+
     await bootcamp.addUser(user)
     return response.json(bootcamp)
   } catch (error) {
