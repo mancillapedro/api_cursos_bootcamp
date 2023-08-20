@@ -1,23 +1,28 @@
-const db = require('../models')
-const User = db.users
+const
+  { users: User } = require('../models')
+  , bcrypt = require('bcrypt')
+  , { sign } = require('jsonwebtoken')
+  , SALT_ROUNDS = 10
+  , { PRIVATE_KEY } = require("../config/auth.config.js")
 
-// Crear y Guardar Usuarios
 exports.createUser = async ({ body }, response) => {
-  const { firstName, lastName, email } = body
   try {
-    const user = await User.create({ firstName, lastName, email })
+    const
+      { firstName, lastName, email, password } = body
+      , hash = bcrypt.hashSync(password, SALT_ROUNDS)
+      , user = await User.create({ firstName, lastName, email, password: hash })
     return response.json(user)
   } catch (error) {
-    console.log(`>> Error al crear el usuario ${err}`)
+    console.log(`>> Error al crear el usuario ${error}`)
     return response.status(400).json({ error: error?.message ?? error })
   }
 }
 
-// obtener los bootcamp de un usuario
-exports.findUserById = async ({ params }, response) => {
-  const { id } = params
+exports.findUserById = async ({ params, _user }, response) => {
   try {
-    const user = await User.scope("includeBootcamps").findByPk(id)
+    const
+      { id } = params
+      , user = await User.scope("includeBootcamps").findByPk(id)
     if (!user) return response
       .status(404)
       .json({ error: `User(${id}) no encontrado` })
@@ -29,7 +34,6 @@ exports.findUserById = async ({ params }, response) => {
   }
 }
 
-// obtener todos los Usuarios incluyendo los bootcamp
 exports.findAll = async (_, response) => {
   try {
     const users = await User.scope("includeBootcamps").findAll()
@@ -40,31 +44,29 @@ exports.findAll = async (_, response) => {
   }
 }
 
-// Actualizar usuarios
-exports.updateUserById = async ({ body, params }, response) => {
-  const
-    { id } = params,
-    { firstName, lastName } = body
+exports.updateUserById = async ({ body, params, _user }, response) => {
   try {
-    const user = await User.findByPk(id)
+    const
+      { id } = params
+      , user = await User.findByPk(id)
     if (!user) return response
       .status(404)
       .json({ error: `User(${id}) no encontrado` })
 
+    const { firstName, lastName } = body
     await user.update({ firstName, lastName })
     return response.json(user)
   } catch (error) {
     console.log(`>> Error mientras se actualizaba el usuario: ${error}`)
     return response.status(400).json({ error: error?.message ?? error })
   }
-
 }
 
-// Actualizar usuarios
-exports.deleteUserById = async ({ params }, response) => {
-  const { id } = params
+exports.deleteUserById = async ({ params, _user }, response) => {
   try {
-    const user = await User.findByPk(id)
+    const
+      { id } = params
+      , user = await User.findByPk(id)
     if (!user) return response
       .status(404)
       .json({ error: `User(${id}) no encontrado` })
@@ -75,5 +77,28 @@ exports.deleteUserById = async ({ params }, response) => {
     console.log(`>> Error mientras se eliminaba el usuario: ${err}`)
     return response.status(400).json({ error: error?.message ?? error })
   }
+}
 
+exports.signIn = async ({ body }, response) => {
+  const { email, password } = body
+  try {
+    const user = await User.findOne({
+      raw: true,
+      where: { email },
+      attributes: { exclude: ['createdAt', 'updatedAt'] }
+    })
+    if (!user) return response
+      .status(404)
+      .json({ error: `User(${id}) no encontrado` })
+
+    const { password: hash, ...infoUser } = user
+    if (!bcrypt.compareSync(password, hash)) return response
+      .status(400)
+      .json({ error: `password incorrecta` })
+
+    const accessToken = sign(infoUser, PRIVATE_KEY)
+    return response.json({ ...infoUser, accessToken })
+  } catch (error) {
+    return response.status(400).json({ error: error?.message ?? error })
+  }
 }

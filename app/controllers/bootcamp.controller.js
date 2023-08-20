@@ -1,9 +1,8 @@
 const
-  db = require('../models'),
-  Bootcamp = db.bootcamps,
-  User = db.users
+  { bootcamps: Bootcamp, users: User } = require('../models')
+  , { sign } = require('jsonwebtoken')
+  , { PRIVATE_KEY } = require("../config/auth.config.js")
 
-// Crear y guardar un nuevo bootcamp
 exports.createBootcamp = async ({ body }, response) => {
   const { title, cue, description } = body
   try {
@@ -15,7 +14,6 @@ exports.createBootcamp = async ({ body }, response) => {
   }
 }
 
-// Agregar un Usuario al Bootcamp
 exports.addUser = async ({ body }, response) => {
   const
     error = [],
@@ -38,11 +36,8 @@ exports.addUser = async ({ body }, response) => {
     console.log(">> Error mientras se estaba agregando Usuario al Bootcamp", error)
     return response.status(400).json({ error: error?.message ?? error })
   }
-
-
 };
 
-// obtener los bootcamp por id 
 exports.findById = async ({ params }, response) => {
   const id = params.id
   try {
@@ -59,7 +54,6 @@ exports.findById = async ({ params }, response) => {
   }
 }
 
-// obtener todos los Usuarios incluyendo los Bootcamp
 exports.findAll = async (_, response) => {
   try {
     const bootcamps = await Bootcamp.scope('includeUsers').findAll()

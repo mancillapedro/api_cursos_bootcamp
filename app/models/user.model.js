@@ -35,13 +35,10 @@ module.exports = (sequelize, DataTypes) => {
         msg: 'correo electronico actualmente registrado en la base de datos!'
       }
     },
-    // password: {
-    //   type: DataTypes.STRING,
-    //   validate: {
-    //     notNull: true,
-    //     notEmpty: true,
-    //   }
-    // }
+    password: {
+      type: DataTypes.STRING,
+      validate: { notEmpty: true }
+    }
   })
 
   return User
