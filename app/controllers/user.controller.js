@@ -1,24 +1,25 @@
 const
   { users: User } = require('../models')
-  , bcrypt = require('bcrypt')
   , { sign } = require('jsonwebtoken')
-  , SALT_ROUNDS = 10
   , { PRIVATE_KEY } = require("../config/auth.config.js")
+  , Password = require("./../utils/Password.js")
 
 exports.createUser = async ({ body }, response) => {
+  const
+    { firstName, lastName, email, password: passFromBody } = body
+
   try {
     const
-      { firstName, lastName, email, password } = body
-      , hash = bcrypt.hashSync(password, SALT_ROUNDS)
+      hash = Password.toHash(passFromBody)
       , user = await User.create({ firstName, lastName, email, password: hash })
     return response.json(user)
   } catch (error) {
-    console.log(`>> Error al crear el usuario ${error}`)
+    console.log(`>> Error al crear el usuario`, error)
     return response.status(400).json({ error: error?.message ?? error })
   }
 }
 
-exports.findUserById = async ({ params, _user }, response) => {
+exports.findUserById = async ({ params }, response) => {
   try {
     const
       { id } = params
@@ -44,7 +45,7 @@ exports.findAll = async (_, response) => {
   }
 }
 
-exports.updateUserById = async ({ body, params, _user }, response) => {
+exports.updateUserById = async ({ body, params }, response) => {
   try {
     const
       { id } = params
@@ -62,7 +63,7 @@ exports.updateUserById = async ({ body, params, _user }, response) => {
   }
 }
 
-exports.deleteUserById = async ({ params, _user }, response) => {
+exports.deleteUserById = async ({ params }, response) => {
   try {
     const
       { id } = params
@@ -80,7 +81,7 @@ exports.deleteUserById = async ({ params, _user }, response) => {
 }
 
 exports.signIn = async ({ body }, response) => {
-  const { email, password } = body
+  const { email, password: passFromBody } = body
   try {
     const user = await User.findOne({
       raw: true,
@@ -91,8 +92,8 @@ exports.signIn = async ({ body }, response) => {
       .status(404)
       .json({ error: `User(${id}) no encontrado` })
 
-    const { password: hash, ...infoUser } = user
-    if (!bcrypt.compareSync(password, hash)) return response
+    const { password, ...infoUser } = user
+    if (!Password.compare(passFromBody, password)) return response
       .status(400)
       .json({ error: `password incorrecta` })
 

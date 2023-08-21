@@ -1,7 +1,4 @@
-const
-  { bootcamps: Bootcamp, users: User } = require('../models')
-  , { sign } = require('jsonwebtoken')
-  , { PRIVATE_KEY } = require("../config/auth.config.js")
+const { bootcamps: Bootcamp, users: User } = require('../models')
 
 exports.createBootcamp = async ({ body }, response) => {
   const { title, cue, description } = body
@@ -14,14 +11,19 @@ exports.createBootcamp = async ({ body }, response) => {
   }
 }
 
-exports.addUser = async ({ body }, response) => {
+exports.addUser = async ({ body, _user }, response) => {
   const
     error = [],
     { bootcampId, userId } = body
+
+  if (userId != _user.id) return response
+    .status(400)
+    .json({ error: `solo puede registrase mismo User logueado a Bootcamp` })
+
   try {
     const
-      bootcamp = await Bootcamp.findByPk(bootcampId),
-      user = await User.findByPk(userId)
+      bootcamp = await Bootcamp.findByPk(bootcampId)
+      , user = await User.findByPk(userId)
 
     !bootcamp && error.push(`Bootcamp(${bootcampId}) no encontrado`);
     !user && error.push(`User(${userId}) no encontrado`);
@@ -38,7 +40,7 @@ exports.addUser = async ({ body }, response) => {
   }
 };
 
-exports.findById = async ({ params }, response) => {
+exports.findById = async ({ params, _user }, response) => {
   const id = params.id
   try {
     const bootcamp = await Bootcamp.scope('includeUsers').findByPk(id)
@@ -47,9 +49,12 @@ exports.findById = async ({ params }, response) => {
       .status(404)
       .json({ error: `Bootcamp(${id}) no encontrado` });
 
+    if (!bootcamp.users.some(user => user.id == _user.id)) return response
+      .status(400).json({ error: 'No puedes ver Bootcamp al cual no estas registrad@' })
+
     return response.json(bootcamp)
   } catch (error) {
-    console.log(`>> Error mientras se encontraba el bootcamp: ${err}`)
+    console.log(`>> Error mientras se encontraba el bootcamp: ${error}`)
     return response.status(400).json({ error: error?.message ?? error })
   }
 }

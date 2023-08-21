@@ -11,7 +11,6 @@ const app = express()
 app.disable('x-powered-by')
 
 app.use(express.json())
-// app.use(express.urlencoded())
 app.use(cors({ origin: '*' }))
 
 app.use('/api', userRoutes)
@@ -24,5 +23,5 @@ app.listen(PORT, () => {
     .then(() => {
       console.log('connect DDBB success :D')
     })
-    .catch(err => console.log(err))
+    .catch(console.log)
 })
